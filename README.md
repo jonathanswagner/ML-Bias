@@ -7,7 +7,8 @@ loan-prediction-dream-housing-finance.ipynb -> preprocessing, visualizing loan_d
 x_train.csv -> working data of loan-prediction-dream-housing-finance.ipynb (later used for data simulation)
 FirstTry.ipynb -> Implementation of Data Simulation and Algorithm Bias Check
 
-code/ \\
+code/ \
+
 preprocessing.py -> modules for preprocessing initial data
 models.py -> creating machine learning models on initial data
 operators.py -> implementing synthetic data generation and methods for bias assessment
