@@ -32,7 +32,7 @@ def calc_stat_parity(data, target_variable, protected_variable, privileged_input
     else:
         print('There is a potential bias')
 
-def data_generator(data):
+def data_generator_fd(data):
     X_new = pd.DataFrame(columns=[])
 
     for c in data.columns:
@@ -41,6 +41,23 @@ def data_generator(data):
         else:
             X_new[c] = np.random.normal(data[c].describe()[1], data[c].describe()[2], 1000)
     return X_new
+
+def data_generator_fi(c_name1, c_name2, c_dt_1, c_dt_2, c1_mean=None, c2_mean=None, c1_std=None, c2_std=None, c3_mean=None,
+                      c4_mean=None, c5_mean=None, c6_mean=None, c3_std=None, c4_std=None, c5_std=None,
+                      c6_std=None, c3_name=None, c4_name=None, c5_name=None, c6_name=None, c3_dt=None,
+                      c4_dt=None, c5_dt=None, c6_dt=None):
+    print('start')
+    X_new = pd.DataFrame(columns=[])
+    if c_dt_1.lower() == 'binary':
+        X_new[c_name1] = np.random.binomial(1, .5, 1000)
+    if c_dt_1.lower() == 'numerical':
+        X_new[c_name1] = np.random.normal(c1_mean, c1_std, 1000)
+    if c_dt_2.lower() == 'binary':
+        X_new[c_name2] = np.random.binomial(1, .5, 1000)
+    if c_dt_2.lower() == 'numerical':
+        X_new[c_name2] = np.random.normal(c2_mean, c2_std, 1000)
+    return X_new
+
 
 def create_eval(pre_trained_model, data):
     pred_y_n = pre_trained_model.predict(data)
