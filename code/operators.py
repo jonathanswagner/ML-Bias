@@ -5,9 +5,22 @@ from typing import List, Union, Dict
 from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
 from aif360.datasets import BinaryLabelDataset
 from aif360.explainers import MetricTextExplainer
+import seaborn as sns
+
+def feature_importance(model, data):
+    imp = np.abs(model.coef_.squeeze())
+    var = np.zeros(shape=imp.shape)
+    return pd.DataFrame({'feature': data.columns.to_list(), 'importance': imp}).sort_values('importance', ascending=False)
+
+
+def plot_feature_importance(**kwargs) -> None:
+    ax = sns.barplot(**kwargs)
+    for l in ax.get_xticklabels():
+        l.set_rotation(90)
 
 def get_disparity_index(di):
     return 1 - np.minimum(di, 1 / di)
+
 
 def calc_disparity_index(data, target_variable, protected_variable, privileged_input, unprivileged_input):
     df_aif = BinaryLabelDataset(df=data, label_names=[target_variable],
