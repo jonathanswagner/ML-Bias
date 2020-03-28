@@ -1,9 +1,10 @@
 
 import pandas as pd
 import numpy as np
+from typing import List, Union, Dict
 from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
-from aif360.algorithms.preprocessing import Reweighing
 from aif360.datasets import BinaryLabelDataset
+from aif360.explainers import MetricTextExplainer
 
 def get_disparity_index(di):
     return 1 - np.minimum(di, 1 / di)
@@ -122,6 +123,12 @@ def data_generator_fi(c_name1, c_name2, c_dt_1, c_dt_2, c1_mean=None, c2_mean=No
         X_new[c_name2] = np.random.normal(c2_mean, c2_std, 1000)
     return X_new
 
+def create_binary(data, target_variable, protected_variable, privileged_input, unprivileged_input):
+    df_aif = BinaryLabelDataset(df=data, label_names=[target_variable],
+                                protected_attribute_names=[protected_variable])
+    privileged_group = [{protected_variable: privileged_input}] #male=1
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    return BinaryLabelDatasetMetric(df_aif, unprivileged_groups=unprivileged_group, privileged_groups=privileged_group)
 
 def create_eval(pre_trained_model, data):
     pred_y_n = pre_trained_model.predict(data)
@@ -131,3 +138,27 @@ def create_eval(pre_trained_model, data):
 
 def is_binary(series):
     return sorted(series.unique()) == [0,1]
+
+class MetricAdditions:
+    def explain(self,
+                disp: bool=True) -> Union[None, str]:
+        """Explain everything available for the given metric."""
+
+        # Find intersecting methods/attributes between MetricTextExplainer and provided metric.
+        inter = set(dir(self)).intersection(set(dir(self.metric)))
+
+        # Ignore private and dunder methods
+        metric_methods = [getattr(self, c) for c in inter if c.startswith('_') < 1]
+
+        # Call methods, join to new lines
+        s = "\n".join([f() for f in metric_methods if callable(f)])
+
+        if disp:
+            print(s)
+        else:
+            return s
+        
+        
+class MetricTextExplainer_(MetricTextExplainer, MetricAdditions):
+    """Combine explainer and .explain."""
+    pass
