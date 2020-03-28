@@ -27,7 +27,71 @@ def calc_stat_parity(data, target_variable, protected_variable, privileged_input
     unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
     metric_orig = BinaryLabelDatasetMetric(df_aif, unprivileged_group, privileged_group)
     print(metric_orig.statistical_parity_difference().round(3))
-    if metric_orig.statistical_parity_difference().round(3) > -0.1:
+    if abs(metric_orig.statistical_parity_difference().round(3)) > 0.1:
+        print('The algorithm can be considered to be not biased')
+    else:
+        print('There is a potential bias')
+
+def calc_mean_diff(data, target_variable, protected_variable, privileged_input, unprivileged_input):
+    df_aif = BinaryLabelDataset(df=data, label_names=[target_variable],
+                                protected_attribute_names=[protected_variable])
+    privileged_group = [{protected_variable: privileged_input}] #male=1
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric_orig = BinaryLabelDatasetMetric(df_aif, unprivileged_group, privileged_group)
+    print(metric_orig.mean_difference().round(3))
+    if abs(metric_orig.mean_difference().round(3)) < 0.2:
+        print('The algorithm can be considered to be not biased')
+    else:
+        print('There is a potential bias')
+
+def odds_diff(random_data, predicted_data, target_variable, protected_variable, privileged_input, unprivileged_input):
+    random_data['Pred'] = np.random.binomial(1, .5, 1000)
+    dataset = BinaryLabelDataset(df=random_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    classified_dataset = BinaryLabelDataset(df=predicted_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    privileged_group = [{protected_variable: privileged_input}] #male=1
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric = ClassificationMetric(dataset, classified_dataset, unprivileged_group, privileged_group)
+    print(metric.average_abs_odds_difference())
+    if abs(metric.average_abs_odds_difference().round(3)) < 0.2:
+        print('The algorithm can be considered to be not biased')
+    else:
+        print('There is a potential bias')
+
+def entropy_index(random_data, predicted_data, target_variable, protected_variable, privileged_input, unprivileged_input):
+    random_data['Pred'] = np.random.binomial(1, .5, 1000)
+    dataset = BinaryLabelDataset(df=random_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    classified_dataset = BinaryLabelDataset(df=predicted_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    privileged_group = [{protected_variable: privileged_input}] #male=1
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric = ClassificationMetric(dataset, classified_dataset, unprivileged_group, privileged_group)
+    print(metric.between_all_groups_generalized_entropy_index(alpha=2))
+    if abs(metric.between_all_groups_generalized_entropy_index(alpha=2).round(3)) < 0.2:
+        print('The algorithm can be considered to be not biased')
+    else:
+        print('There is a potential bias')
+
+def coeff_variation(random_data, predicted_data, target_variable, protected_variable, privileged_input, unprivileged_input):
+    random_data['Pred'] = np.random.binomial(1, .5, 1000)
+    dataset = BinaryLabelDataset(df=random_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    classified_dataset = BinaryLabelDataset(df=predicted_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    privileged_group = [{protected_variable: privileged_input}] #male=1
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric = ClassificationMetric(dataset, classified_dataset, unprivileged_group, privileged_group)
+    print(metric.between_group_coefficient_of_variation())
+    if abs(metric.between_group_coefficient_of_variation().round(3)) < 0.2:
+        print('The algorithm can be considered to be not biased')
+    else:
+        print('There is a potential bias')
+
+def equal_opportunity(random_data, predicted_data, target_variable, protected_variable, privileged_input, unprivileged_input):
+    random_data['Pred'] = np.random.binomial(1, .5, 1000)
+    dataset = BinaryLabelDataset(df=random_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    classified_dataset = BinaryLabelDataset(df=predicted_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    privileged_group = [{protected_variable: privileged_input}] #male=1
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric = ClassificationMetric(dataset, classified_dataset, unprivileged_group, privileged_group)
+    print(metric.equal_opportunity_difference())
+    if abs(metric.equal_opportunity_difference().round(3)) < 0.2:
         print('The algorithm can be considered to be not biased')
     else:
         print('There is a potential bias')
