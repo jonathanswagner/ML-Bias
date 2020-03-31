@@ -124,6 +124,17 @@ def equal_opportunity(random_data, predicted_data, target_variable, protected_va
     else:
         print('There is a potential bias')
 
+def data_input(mock):
+    X_new = pd.DataFrame(columns=[])
+    for ind in mock.index:
+        if mock['data_type'][ind] == 'binary':
+            X_new[mock['col_id'][ind]] = np.random.binomial(1, .5, 1000)
+        if mock['data_type'][ind] == 'categorical':
+            X_new[mock['col_id'][ind]] = np.random.randint(mock['max'][ind]+1, size=1000)
+        if mock['data_type'][ind] == 'numerical':
+            X_new[mock['col_id'][ind]] = np.random.normal(mock['mean'][ind], mock['std'][ind], 1000)
+    return X_new
+
 def data_generator_fd(data):
     X_new = pd.DataFrame(columns=[])
 
