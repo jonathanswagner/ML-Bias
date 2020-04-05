@@ -6,6 +6,8 @@ from aif360.metrics import BinaryLabelDatasetMetric, ClassificationMetric
 from aif360.datasets import BinaryLabelDataset
 from aif360.explainers import MetricTextExplainer
 import seaborn as sns
+import matplotlib.pyplot as plt
+import statistics
 
 def feature_importance(model, data):
     imp = np.abs(model.coef_.squeeze())
@@ -14,6 +16,7 @@ def feature_importance(model, data):
 
 
 def plot_feature_importance(**kwargs) -> None:
+    #print('The protected column is: ', str(data[data['protected'].values]['col_id'].values))
     ax = sns.barplot(**kwargs)
     for l in ax.get_xticklabels():
         l.set_rotation(90)
@@ -35,6 +38,17 @@ def calc_disparity_index(data, target_variable, protected_variable, unprivileged
         print('The algorithm can be considered to be not biased')
     else:
         print('There is a potential bias')
+
+def disparity_values(data, target_variable, protected_variable, unprivileged_input):
+    df_aif = BinaryLabelDataset(df=data, label_names=[target_variable],
+                                protected_attribute_names=[protected_variable])
+    privileged_group = []
+    for v in data[protected_variable].unique()[data[protected_variable].unique() != unprivileged_input]:
+        privileged_group.append({protected_variable: v})
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric_orig = BinaryLabelDatasetMetric(df_aif, unprivileged_group, privileged_group)
+    return abs(get_disparity_index(metric_orig.disparate_impact()).round(3))
+
 
 def calc_stat_parity(data, target_variable, protected_variable, unprivileged_input):
     df_aif = BinaryLabelDataset(df=data, label_names=[target_variable],
@@ -63,6 +77,16 @@ def calc_mean_diff(data, target_variable, protected_variable, unprivileged_input
         print('The algorithm can be considered to be not biased')
     else:
         print('There is a potential bias')
+
+def mean_diff_values(data, target_variable, protected_variable, unprivileged_input):
+    df_aif = BinaryLabelDataset(df=data, label_names=[target_variable],
+                                protected_attribute_names=[protected_variable])
+    privileged_group = []
+    for v in data[protected_variable].unique()[data[protected_variable].unique() != unprivileged_input]:
+        privileged_group.append({protected_variable: v})
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric_orig = BinaryLabelDatasetMetric(df_aif, unprivileged_group, privileged_group)
+    return abs(metric_orig.mean_difference().round(3))
 
 def odds_diff(random_data, predicted_data, target_variable, protected_variable, unprivileged_input):
     random_data['Pred'] = np.random.binomial(1, .5, 1000)
@@ -123,6 +147,17 @@ def equal_opportunity(random_data, predicted_data, target_variable, protected_va
         print('The algorithm can be considered to be not biased')
     else:
         print('There is a potential bias')
+
+def equal_ops_values(random_data, predicted_data, target_variable, protected_variable, unprivileged_input):
+    random_data['Pred'] = np.random.binomial(1, .5, 1000)
+    dataset = BinaryLabelDataset(df=random_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    classified_dataset = BinaryLabelDataset(df=predicted_data, label_names=[target_variable], protected_attribute_names=[protected_variable])
+    privileged_group = []
+    for v in predicted_data[protected_variable].unique()[predicted_data[protected_variable].unique() != unprivileged_input]:
+        privileged_group.append({protected_variable: v})
+    unprivileged_group = [{protected_variable: unprivileged_input}] #female=0
+    metric = ClassificationMetric(dataset, classified_dataset, unprivileged_group, privileged_group)
+    return abs(metric.equal_opportunity_difference())
 
 def data_input(mock):
     X_new = pd.DataFrame(columns=[])
@@ -204,3 +239,70 @@ class MetricAdditions:
 class MetricTextExplainer_(MetricTextExplainer, MetricAdditions):
     """Combine explainer and .explain."""
     pass
+
+def create_boxplots(input, model, disadvantaged):
+    for c in input[input['protected']]['col_id']: c
+    disparity = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        disparity.append(disparity_values(pred_n, 'Pred', c, disadvantaged))
+    sns.set(style="whitegrid")
+    print('With an iteration of 100, the values')
+    print('of the disparity index are shown below:')
+    ax = sns.boxplot(x=disparity)
+    plt.show()
+    
+    mean_diff = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        mean_diff.append(mean_diff_values(pred_n, 'Pred', c, disadvantaged))
+    sns.set(style="whitegrid")
+    print('With an iteration of 100, the values')
+    print('of the mean difference are shown below:')
+    ax = sns.boxplot(x=mean_diff)
+    plt.show()
+    
+    equal_ops = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        equal_ops.append(equal_ops_values(X_new,pred_n, 'Pred', c, disadvantaged))    
+    print('With an iteration of 100, the values')
+    print('of the equal opportunity are shown below:')
+    ax = sns.boxplot(x=equal_ops)  
+    plt.show()
+
+def create_output(input, model, disadvantaged, request_id):
+    for c in input[input['protected']]['col_id']: c
+    output = pd.DataFrame(columns=['request_id'])
+    output = output.set_index('request_id')
+    disparity = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        disparity.append(disparity_values(pred_n, 'Pred', c, disadvantaged))
+    output.loc[request_id, 'disparity_index'] = statistics.mean(disparity)
+
+    mean_diff = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        mean_diff.append(mean_diff_values(pred_n, 'Pred', c, disadvantaged))
+    output.loc[request_id, 'mean_difference'] = statistics.mean(mean_diff)
+    
+    equal_ops = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        equal_ops.append(equal_ops_values(X_new,pred_n, 'Pred', c, disadvantaged))
+    output.loc[request_id, 'equal_opportunity'] = statistics.mean(equal_ops)
+
+    positive = []
+    for i in range(100):
+        X_new = data_input(input)
+        pred_n = create_eval(model, X_new)
+        positive.append(pred_n['Pred'].sum())
+    output.loc[request_id, 'positive_outcomes'] = statistics.mean(positive)/1000
+    return output
